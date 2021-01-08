@@ -1,9 +1,12 @@
 <script>
-  import { store } from "builderStore"
+  import { get } from "svelte/store"
+  import { store, selectedComponent, currentAsset } from "builderStore"
+  import { FrontendTypes } from "constants"
   import panelStructure from "./temporaryPanelStructure.js"
   import CategoryTab from "./CategoryTab.svelte"
   import DesignView from "./DesignView.svelte"
   import SettingsView from "./SettingsView.svelte"
+  import { setWith } from "lodash"
 
   let flattenedPanel = flattenComponents(panelStructure.categories)
   let categories = [
@@ -14,12 +17,12 @@
 
   $: componentInstance =
     $store.currentView !== "component"
-      ? { ...$store.currentPreviewItem, ...$store.currentComponentInfo }
-      : $store.currentComponentInfo
+      ? { ...$currentAsset, ...$selectedComponent }
+      : $selectedComponent
   $: componentDefinition = $store.components[componentInstance._component]
   $: componentPropDefinition =
     flattenedPanel.find(
-      //use for getting controls for each component property
+      // use for getting controls for each component property
       c => c._component === componentInstance._component
     ) || {}
 
@@ -28,10 +31,12 @@
     componentPropDefinition.properties[selectedCategory.value]
 
   const onStyleChanged = store.actions.components.updateStyle
+  const onCustomStyleChanged = store.actions.components.updateCustomStyle
+  const onResetStyles = store.actions.components.resetStyles
 
   $: isComponentOrScreen =
     $store.currentView === "component" ||
-    $store.currentFrontEndType === "screen"
+    $store.currentFrontEndType === FrontendTypes.SCREEN
   $: isNotScreenslot = componentInstance._component !== "##builtin/screenslot"
 
   $: displayName =
@@ -58,16 +63,20 @@
     return components
   }
 
-  function setPageOrScreenProp(name, value) {
+  function setAssetProps(name, value) {
+    const selectedAsset = get(currentAsset)
     store.update(state => {
-      if (name === "_instanceName" && state.currentFrontEndType === "screen") {
-        state.currentPreviewItem.props[name] = value
+      if (
+        name === "_instanceName" &&
+        state.currentFrontEndType === FrontendTypes.SCREEN
+      ) {
+        selectedAsset.props._instanceName = value
       } else {
-        state.currentPreviewItem[name] = value
+        setWith(selectedAsset, name.split("."), value, Object)
       }
-      store.actions.preview.saveSelected()
       return state
     })
+    store.actions.preview.saveSelected()
   }
 
   function getProps(obj, keys) {
@@ -86,7 +95,12 @@
 
 <div class="component-props-container">
   {#if selectedCategory.value === 'design'}
-    <DesignView {panelDefinition} {componentInstance} {onStyleChanged} />
+    <DesignView
+      {panelDefinition}
+      {componentInstance}
+      {onStyleChanged}
+      {onCustomStyleChanged}
+      {onResetStyles} />
   {:else if selectedCategory.value === 'settings'}
     <SettingsView
       {componentInstance}
@@ -94,21 +108,12 @@
       {panelDefinition}
       displayNameField={displayName}
       onChange={store.actions.components.updateProp}
-      onScreenPropChange={setPageOrScreenProp}
-      screenOrPageInstance={$store.currentView !== 'component' && $store.currentPreviewItem} />
+      onScreenPropChange={setAssetProps}
+      assetInstance={$store.currentView !== 'component' && $currentAsset} />
   {/if}
 </div>
 
 <style>
-  .title > div:nth-child(1) {
-    grid-column-start: name;
-    color: var(--ink);
-  }
-
-  .title > div:nth-child(2) {
-    grid-column-start: actions;
-  }
-
   .component-props-container {
     flex: 1 1 auto;
     min-height: 0;

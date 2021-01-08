@@ -1,10 +1,13 @@
 <script>
+  import { get } from "lodash"
   import { isEmpty } from "lodash/fp"
+  import { FrontendTypes } from "constants"
   import PropertyControl from "./PropertyControl.svelte"
+  import LayoutSelect from "./LayoutSelect.svelte"
+  import RoleSelect from "./RoleSelect.svelte"
   import Input from "./PropertyPanelControls/Input.svelte"
-  import { goto } from "@sveltech/routify"
   import { excludeProps } from "./propertyCategories.js"
-  import { store, allScreens } from "builderStore"
+  import { store, allScreens, currentAsset } from "builderStore"
   import { walkProps } from "builderStore/storeUtils"
 
   export let panelDefinition = []
@@ -13,13 +16,19 @@
   export let onChange = () => {}
   export let onScreenPropChange = () => {}
   export let displayNameField = false
-  export let screenOrPageInstance
+  export let assetInstance
 
-  let pageScreenProps = ["title", "favicon", "description", "route"]
+  let assetProps = [
+    "title",
+    "description",
+    "routing.route",
+    "layoutId",
+    "routing.roleId",
+  ]
   let duplicateName = false
 
   const propExistsOnComponentDef = prop =>
-    pageScreenProps.includes(prop) || prop in componentDefinition.props
+    assetProps.includes(prop) || prop in componentDefinition.props
 
   function handleChange(key, data) {
     data.target ? onChange(key, data.target.value) : onChange(key, data)
@@ -27,13 +36,12 @@
 
   const screenDefinition = [
     { key: "description", label: "Description", control: Input },
-    { key: "route", label: "Route", control: Input },
+    { key: "routing.route", label: "Route", control: Input },
+    { key: "routing.roleId", label: "Access", control: RoleSelect },
+    { key: "layoutId", label: "Layout", control: LayoutSelect },
   ]
 
-  const pageDefinition = [
-    { key: "title", label: "Title", control: Input },
-    { key: "favicon", label: "Favicon", control: Input },
-  ]
+  const layoutDefinition = []
 
   const canRenderControl = (key, dependsOn) => {
     let test = !isEmpty(componentInstance[dependsOn])
@@ -44,8 +52,8 @@
     )
   }
 
-  $: isPage = screenOrPageInstance && screenOrPageInstance.favicon
-  $: screenOrPageDefinition = isPage ? pageDefinition : screenDefinition
+  $: isLayout = assetInstance && assetInstance.favicon
+  $: assetDefinition = isLayout ? layoutDefinition : screenDefinition
 
   const isDuplicateName = name => {
     let duplicate = false
@@ -58,15 +66,15 @@
         }
       })
     }
-    // check page first
-    lookForDuplicate($store.pages[$store.currentPageName].props)
-    if (duplicate) return true
-
+    // check against layouts
+    for (let layout of $store.layouts) {
+      lookForDuplicate(layout.props)
+    }
     // if viewing screen, check current screen for duplicate
-    if ($store.currentFrontEndType === "screen") {
-      lookForDuplicate($store.currentPreviewItem.props)
+    if ($store.currentFrontEndType === FrontendTypes.SCREEN) {
+      lookForDuplicate($currentAsset.props)
     } else {
-      // viewing master page - need to dedupe against all screens
+      // need to dedupe against all screens
       for (let screen of $allScreens) {
         lookForDuplicate(screen.props)
       }
@@ -86,14 +94,14 @@
 </script>
 
 <div class="settings-view-container">
-  {#if screenOrPageInstance}
-    {#each screenOrPageDefinition as def}
+  {#if assetInstance}
+    {#each assetDefinition as def}
       <PropertyControl
         bindable={false}
         control={def.control}
         label={def.label}
         key={def.key}
-        value={screenOrPageInstance[def.key]}
+        value={get(assetInstance, def.key)}
         onChange={onScreenPropChange}
         props={{ ...excludeProps(def, ['control', 'label']) }} />
     {/each}
@@ -111,7 +119,7 @@
     {/if}
   {/if}
 
-  {#if panelDefinition && panelDefinition.length > 0}
+  {#if !isLayout && panelDefinition && panelDefinition.length > 0}
     {#each panelDefinition as definition}
       {#if canRenderControl(definition.key, definition.dependsOn)}
         <PropertyControl

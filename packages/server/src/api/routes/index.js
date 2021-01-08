@@ -1,5 +1,5 @@
 const authRoutes = require("./auth")
-const pageRoutes = require("./pages")
+const layoutRoutes = require("./layout")
 const screenRoutes = require("./screen")
 const userRoutes = require("./user")
 const applicationRoutes = require("./application")
@@ -10,28 +10,30 @@ const staticRoutes = require("./static")
 const componentRoutes = require("./component")
 const automationRoutes = require("./automation")
 const webhookRoutes = require("./webhook")
-const accesslevelRoutes = require("./accesslevel")
+const roleRoutes = require("./role")
 const deployRoutes = require("./deploy")
 const apiKeysRoutes = require("./apikeys")
 const templatesRoutes = require("./templates")
 const analyticsRoutes = require("./analytics")
 const routingRoutes = require("./routing")
+const permissionRoutes = require("./permission")
 
 exports.mainRoutes = [
   deployRoutes,
-  pageRoutes,
+  layoutRoutes,
   screenRoutes,
   userRoutes,
   applicationRoutes,
   automationRoutes,
   viewRoutes,
   componentRoutes,
-  accesslevelRoutes,
+  roleRoutes,
   apiKeysRoutes,
   templatesRoutes,
   analyticsRoutes,
   webhookRoutes,
   routingRoutes,
+  permissionRoutes,
   // these need to be handled last as they still use /api/:tableId
   // this could be breaking as koa may recognise other routes as this
   tableRoutes,

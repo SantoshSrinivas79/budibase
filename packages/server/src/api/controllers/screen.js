@@ -1,6 +1,6 @@
 const CouchDB = require("../../db")
 const { getScreenParams, generateScreenID } = require("../../db/utils")
-const { AccessController } = require("../../utilities/security/accessLevels")
+const { AccessController } = require("../../utilities/security/roles")
 
 exports.fetch = async ctx => {
   const appId = ctx.user.appId
@@ -16,44 +16,31 @@ exports.fetch = async ctx => {
 
   ctx.body = await new AccessController(appId).checkScreensAccess(
     screens,
-    ctx.user.accessLevel._id
-  )
-}
-
-exports.find = async ctx => {
-  const appId = ctx.user.appId
-  const db = new CouchDB(appId)
-
-  const screens = await db.allDocs(
-    getScreenParams(ctx.params.pageId, {
-      include_docs: true,
-    })
-  )
-
-  ctx.body = await new AccessController(appId).checkScreensAccess(
-    screens,
-    ctx.user.accessLevel._id
+    ctx.user.role._id
   )
 }
 
 exports.save = async ctx => {
   const appId = ctx.user.appId
   const db = new CouchDB(appId)
-  const screen = ctx.request.body
+  let screen = ctx.request.body
 
   if (!screen._id) {
-    screen._id = generateScreenID(ctx.params.pageId)
+    screen._id = generateScreenID()
   }
-  delete screen._css
   const response = await db.put(screen)
 
   ctx.message = `Screen ${screen.name} saved.`
-  ctx.body = response
+  ctx.body = {
+    ...screen,
+    _id: response.id,
+    _rev: response.rev,
+  }
 }
 
 exports.destroy = async ctx => {
   const db = new CouchDB(ctx.user.appId)
-  await db.remove(ctx.params.screenId, ctx.params.revId)
+  await db.remove(ctx.params.screenId, ctx.params.screenRev)
   ctx.message = "Screen deleted successfully"
   ctx.status = 200
 }

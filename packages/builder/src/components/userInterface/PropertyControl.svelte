@@ -1,16 +1,14 @@
 <script>
   import { Icon } from "@budibase/bbui"
   import Input from "./PropertyPanelControls/Input.svelte"
-  import { store, backendUiStore } from "builderStore"
+  import { store, backendUiStore, currentAsset } from "builderStore"
   import fetchBindableProperties from "builderStore/fetchBindableProperties"
   import {
     readableToRuntimeBinding,
     runtimeToReadableBinding,
-    CAPTURE_VAR_INSIDE_MUSTACHE,
   } from "builderStore/replaceBindings"
   import { DropdownMenu } from "@budibase/bbui"
   import BindingDropdown from "components/userInterface/BindingDropdown.svelte"
-  import { onMount } from "svelte"
 
   export let label = ""
   export let bindable = true
@@ -22,22 +20,20 @@
   export let onChange = () => {}
 
   let temporaryBindableValue = value
+  let bindableProperties = []
+  let anchor
+  let dropdown
 
   function handleClose() {
     handleChange(key, temporaryBindableValue)
   }
 
-  let bindableProperties = []
-
-  let anchor
-  let dropdown
-
   function getBindableProperties() {
     // Get all bindableProperties
     bindableProperties = fetchBindableProperties({
-      componentInstanceId: $store.currentComponentInfo._id,
+      componentInstanceId: $store.selectedComponentId,
       components: $store.components,
-      screen: $store.currentPreviewItem,
+      screen: $currentAsset,
       tables: $backendUiStore.tables,
     })
   }
@@ -72,12 +68,12 @@
 
     let temp = runtimeToReadableBinding(bindableProperties, value)
 
-    return value == null && props.defaultValue !== undefined
-      ? props.defaultValue
+    return value == null && props.initialValue !== undefined
+      ? props.initialValue
       : temp
   }
 
-  //Incase the component has a different value key name
+  // Incase the component has a different value key name
   const handlevalueKey = value =>
     props.valueKey ? { [props.valueKey]: safeValue() } : { value: safeValue() }
 </script>
@@ -94,7 +90,7 @@
       {...props}
       name={key} />
   </div>
-  {#if bindable && control === Input && !key.startsWith('_')}
+  {#if bindable && !key.startsWith('_') && control === Input}
     <div
       class="icon"
       data-cy={`${key}-binding-button`}

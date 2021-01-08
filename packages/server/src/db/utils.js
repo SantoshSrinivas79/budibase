@@ -10,10 +10,10 @@ const DocumentTypes = {
   AUTOMATION: "au",
   LINK: "li",
   APP: "app",
-  ACCESS_LEVEL: "ac",
+  ROLE: "role",
   WEBHOOK: "wh",
   INSTANCE: "inst",
-  PAGE: "page",
+  LAYOUT: "layout",
   SCREEN: "screen",
 }
 
@@ -101,21 +101,17 @@ exports.generateRowID = tableId => {
 /**
  * Gets parameters for retrieving users, this is a utility function for the getDocParams function.
  */
-exports.getUserParams = (username = "", otherProps = {}) => {
-  return getDocParams(
-    DocumentTypes.ROW,
-    `${ViewNames.USERS}${SEPARATOR}${DocumentTypes.USER}${SEPARATOR}${username}`,
-    otherProps
-  )
+exports.getUserParams = (email = "", otherProps = {}) => {
+  return exports.getRowParams(ViewNames.USERS, email, otherProps)
 }
 
 /**
- * Generates a new user ID based on the passed in username.
- * @param {string} username The username which the ID is going to be built up of.
+ * Generates a new user ID based on the passed in email.
+ * @param {string} email The email which the ID is going to be built up of.
  * @returns {string} The new user ID which the user doc can be stored under.
  */
-exports.generateUserID = username => {
-  return `${DocumentTypes.ROW}${SEPARATOR}${ViewNames.USERS}${SEPARATOR}${DocumentTypes.USER}${SEPARATOR}${username}`
+exports.generateUserID = email => {
+  return `${DocumentTypes.ROW}${SEPARATOR}${ViewNames.USERS}${SEPARATOR}${DocumentTypes.USER}${SEPARATOR}${email}`
 }
 
 /**
@@ -169,18 +165,48 @@ exports.getAppParams = (appId = null, otherProps = {}) => {
 }
 
 /**
- * Generates a new access level ID.
- * @returns {string} The new access level ID which the access level doc can be stored under.
+ * Generates a new role ID.
+ * @returns {string} The new role ID which the role doc can be stored under.
  */
-exports.generateAccessLevelID = () => {
-  return `${DocumentTypes.ACCESS_LEVEL}${SEPARATOR}${newid()}`
+exports.generateRoleID = () => {
+  return `${DocumentTypes.ROLE}${SEPARATOR}${newid()}`
 }
 
 /**
- * Gets parameters for retrieving an access level, this is a utility function for the getDocParams function.
+ * Gets parameters for retrieving a role, this is a utility function for the getDocParams function.
  */
-exports.getAccessLevelParams = (accessLevelId = null, otherProps = {}) => {
-  return getDocParams(DocumentTypes.ACCESS_LEVEL, accessLevelId, otherProps)
+exports.getRoleParams = (roleId = null, otherProps = {}) => {
+  return getDocParams(DocumentTypes.ROLE, roleId, otherProps)
+}
+
+/**
+ * Generates a new layout ID.
+ * @returns {string} The new layout ID which the layout doc can be stored under.
+ */
+exports.generateLayoutID = id => {
+  return `${DocumentTypes.LAYOUT}${SEPARATOR}${id || newid()}`
+}
+
+/**
+ * Gets parameters for retrieving layout, this is a utility function for the getDocParams function.
+ */
+exports.getLayoutParams = (layoutId = null, otherProps = {}) => {
+  return getDocParams(DocumentTypes.LAYOUT, layoutId, otherProps)
+}
+
+/**
+ * Generates a new screen ID.
+ * @returns {string} The new screen ID which the screen doc can be stored under.
+ */
+exports.generateScreenID = () => {
+  return `${DocumentTypes.SCREEN}${SEPARATOR}${newid()}`
+}
+
+/**
+ * Gets parameters for retrieving screens, this is a utility function for the getDocParams function.
+ */
+exports.getScreenParams = (screenId = null, otherProps = {}) => {
+  return getDocParams(DocumentTypes.SCREEN, screenId, otherProps)
 }
 
 /**
@@ -189,36 +215,6 @@ exports.getAccessLevelParams = (accessLevelId = null, otherProps = {}) => {
  */
 exports.generateWebhookID = () => {
   return `${DocumentTypes.WEBHOOK}${SEPARATOR}${newid()}`
-}
-
-/**
- * Generates a new page ID.
- * @returns {string} The new page ID which the page doc can be stored under.
- */
-exports.generatePageID = () => {
-  return `${DocumentTypes.PAGE}${SEPARATOR}${newid()}`
-}
-
-/**
- * Gets parameters for retrieving pages, this is a utility function for the getDocParams function.
- */
-exports.getPageParams = (pageId = null, otherProps = {}) => {
-  return getDocParams(DocumentTypes.PAGE, pageId, otherProps)
-}
-
-/**
- * Generates a new screen ID.
- * @returns {string} The new screen ID which the screen doc can be stored under.
- */
-exports.generateScreenID = pageId => {
-  return `${DocumentTypes.SCREEN}${SEPARATOR}${pageId}${SEPARATOR}${newid()}`
-}
-
-/**
- * Gets parameters for retrieving screens for a particular page, this is a utility function for the getDocParams function.
- */
-exports.getScreenParams = (pageId = null, otherProps = {}) => {
-  return getDocParams(DocumentTypes.SCREEN, pageId, otherProps)
 }
 
 /**

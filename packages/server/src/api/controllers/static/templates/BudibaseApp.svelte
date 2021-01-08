@@ -3,14 +3,13 @@
   export let favicon = ""
 
   export let appId
-  export let pageName = ""
   export let production
 
   export const PRODUCTION_ASSETS_URL = `https://${appId}.app.budi.live`
 
   function publicPath(path) {
     if (production) {
-      return `${PRODUCTION_ASSETS_URL}/assets/${appId}/${pageName}/${path}`
+      return `${PRODUCTION_ASSETS_URL}/assets/${appId}/${path}`
     }
 
     return `/assets/${path}`
@@ -23,13 +22,7 @@
 
   <title>{title}</title>
   <link rel="icon" type="image/png" href={favicon} />
-
-  <link rel="stylesheet" href={publicPath('bundle.css')} />
-
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link
-    rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Roboto+Mono" />
   <style>
     html,
     body {
@@ -49,8 +42,6 @@
 </svelte:head>
 
 <body id="app">
-  <script src={publicPath('clientFrontendDefinition.js')}>
-  </script>
   <script src={publicPath('budibase-client.js')}>
   </script>
   <script>

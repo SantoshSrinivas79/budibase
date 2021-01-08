@@ -1,49 +1,45 @@
 const CouchDB = require("../../db")
 const bcrypt = require("../../utilities/bcrypt")
 const { generateUserID, getUserParams, ViewNames } = require("../../db/utils")
-const {
-  BUILTIN_LEVEL_ID_ARRAY,
-} = require("../../utilities/security/accessLevels")
-const {
-  BUILTIN_PERMISSION_NAMES,
-} = require("../../utilities/security/permissions")
+const { getRole } = require("../../utilities/security/roles")
 
 exports.fetch = async function(ctx) {
   const database = new CouchDB(ctx.user.appId)
-  const data = await database.allDocs(
-    getUserParams("", {
-      include_docs: true,
-    })
-  )
-  ctx.body = data.rows.map(row => row.doc)
+  const users = (
+    await database.allDocs(
+      getUserParams(null, {
+        include_docs: true,
+      })
+    )
+  ).rows.map(row => row.doc)
+  // user hashed password shouldn't ever be returned
+  for (let user of users) {
+    delete user.password
+  }
+  ctx.body = users
 }
 
 exports.create = async function(ctx) {
   const db = new CouchDB(ctx.user.appId)
-  const {
-    username,
-    password,
-    name,
-    accessLevelId,
-    permissions,
-  } = ctx.request.body
+  const { email, password, roleId } = ctx.request.body
 
-  if (!username || !password) {
-    ctx.throw(400, "Username and Password Required.")
+  if (!email || !password) {
+    ctx.throw(400, "email and Password Required.")
   }
 
-  const accessLevel = await checkAccessLevel(db, accessLevelId)
+  const role = await getRole(ctx.user.appId, roleId)
 
-  if (!accessLevel) ctx.throw(400, "Invalid Access Level")
+  if (!role) ctx.throw(400, "Invalid Role")
 
+  const hashedPassword = await bcrypt.hash(password)
   const user = {
-    _id: generateUserID(username),
-    username,
-    password: await bcrypt.hash(password),
-    name: name || username,
+    ...ctx.request.body,
+    // these must all be after the object spread, make sure
+    // any values are overwritten, generateUserID will always
+    // generate the same ID for the user as it is not UUID based
+    _id: generateUserID(email),
     type: "user",
-    accessLevelId,
-    permissions: permissions || [BUILTIN_PERMISSION_NAMES.POWER],
+    password: hashedPassword,
     tableId: ViewNames.USERS,
   }
 
@@ -54,8 +50,7 @@ exports.create = async function(ctx) {
     ctx.userId = response._id
     ctx.body = {
       _rev: response.rev,
-      username,
-      name,
+      email,
     }
   } catch (err) {
     if (err.status === 409) {
@@ -69,42 +64,37 @@ exports.create = async function(ctx) {
 exports.update = async function(ctx) {
   const db = new CouchDB(ctx.user.appId)
   const user = ctx.request.body
-  const dbUser = db.get(ctx.request.body._id)
+  const dbUser = await db.get(ctx.request.body._id)
+  if (user.password) {
+    user.password = await bcrypt.hash(user.password)
+  } else {
+    delete user.password
+  }
   const newData = { ...dbUser, ...user }
 
   const response = await db.put(newData)
   user._rev = response.rev
 
   ctx.status = 200
-  ctx.message = `User ${ctx.request.body.username} updated successfully.`
+  ctx.message = `User ${ctx.request.body.email} updated successfully.`
   ctx.body = response
 }
 
 exports.destroy = async function(ctx) {
   const database = new CouchDB(ctx.user.appId)
-  await database.destroy(generateUserID(ctx.params.username))
-  ctx.message = `User ${ctx.params.username} deleted.`
+  await database.destroy(generateUserID(ctx.params.email))
+  ctx.message = `User ${ctx.params.email} deleted.`
   ctx.status = 200
 }
 
 exports.find = async function(ctx) {
   const database = new CouchDB(ctx.user.appId)
-  const user = await database.get(generateUserID(ctx.params.username))
-  ctx.body = {
-    username: user.username,
-    name: user.name,
-    _rev: user._rev,
+  let lookup = ctx.params.email
+    ? generateUserID(ctx.params.email)
+    : ctx.params.userId
+  const user = await database.get(lookup)
+  if (user) {
+    delete user.password
   }
-}
-
-const checkAccessLevel = async (db, accessLevelId) => {
-  if (!accessLevelId) return
-  if (BUILTIN_LEVEL_ID_ARRAY.indexOf(accessLevelId) !== -1) {
-    return {
-      _id: accessLevelId,
-      name: accessLevelId,
-      permissions: [],
-    }
-  }
-  return await db.get(accessLevelId)
+  ctx.body = user
 }

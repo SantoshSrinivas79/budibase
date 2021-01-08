@@ -15,7 +15,6 @@ const {
 const CouchDB = require("../../../db")
 const setBuilderToken = require("../../../utilities/builder/setBuilderToken")
 const fileProcessor = require("../../../utilities/fileProcessor")
-const { AuthTypes } = require("../../../constants")
 const env = require("../../../environment")
 
 // this was the version before we started versioning the component library
@@ -142,15 +141,11 @@ exports.performLocalFileProcessing = async function(ctx) {
 
 exports.serveApp = async function(ctx) {
   const App = require("./templates/BudibaseApp.svelte").default
-
   const db = new CouchDB(ctx.params.appId)
-
   const appInfo = await db.get(ctx.params.appId)
 
   const { head, html, css } = App.render({
     title: appInfo.name,
-    pageName:
-      ctx.auth.authenticated === AuthTypes.APP ? "main" : "unauthenticated",
     production: env.CLOUD,
     appId: ctx.params.appId,
   })
@@ -185,15 +180,7 @@ exports.serveAttachment = async function(ctx) {
 
 exports.serveAppAsset = async function(ctx) {
   // default to homedir
-  const mainOrAuth =
-    ctx.auth.authenticated === AuthTypes.APP ? "main" : "unauthenticated"
-
-  const appPath = resolve(
-    budibaseAppsDir(),
-    ctx.user.appId,
-    "public",
-    mainOrAuth
-  )
+  const appPath = resolve(budibaseAppsDir(), ctx.user.appId, "public")
 
   await send(ctx, ctx.file, { root: ctx.devPath || appPath })
 }

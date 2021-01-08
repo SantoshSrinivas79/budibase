@@ -44,9 +44,9 @@ Cypress.Commands.add("createApp", name => {
 
       cy.contains("Next").click()
 
-      cy.get("input[name=username]")
+      cy.get("input[name=email]")
         .click()
-        .type("test")
+        .type("test@test.com")
       cy.get("input[name=password]")
         .click()
         .type("test")
@@ -111,26 +111,26 @@ Cypress.Commands.add("addRow", values => {
   })
 })
 
-Cypress.Commands.add("createUser", (username, password, accessLevel) => {
+Cypress.Commands.add("createUser", (email, password, role) => {
   // Create User
   cy.contains("Users").click()
 
-  cy.contains("Create New Row").click()
+  cy.contains("Create New User").click()
 
   cy.get(".modal").within(() => {
     cy.get("input")
       .first()
-      .type(password)
+      .type(email)
     cy.get("input")
       .eq(1)
-      .type(username)
+      .type(password)
     cy.get("select")
       .first()
-      .select(accessLevel)
+      .select(role)
 
     // Save
     cy.get(".buttons")
-      .contains("Create Row")
+      .contains("Create User")
       .click()
   })
 })
